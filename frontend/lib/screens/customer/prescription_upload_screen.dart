@@ -21,7 +21,7 @@ class _PrescriptionUploadScreenState extends State<PrescriptionUploadScreen> {
   final PrescriptionService _prescriptionService = PrescriptionService();
   final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
-  final _patientIdController = TextEditingController(text: 'PAT-8801');
+  final _patientIdController = TextEditingController(text: 'PAT1001');
 
   XFile? _selectedImage;
   bool _isUploading = false;

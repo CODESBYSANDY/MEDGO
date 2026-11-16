@@ -28,15 +28,22 @@ class PharmacyModel {
   });
 
   factory PharmacyModel.fromJson(Map<String, dynamic> json) {
+    double parsedDistance = 0.0;
+    if (json['distance_km'] != null) {
+      parsedDistance = (json['distance_km'] as num).toDouble();
+    } else if (json['distance'] != null) {
+      parsedDistance = (json['distance'] as num).toDouble();
+    }
+
     return PharmacyModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? json['pharmacy_name']?.toString() ?? '',
       ownerName: json['owner_name']?.toString() ?? json['ownerName']?.toString() ?? 'Pharmacy Owner',
-      distance: (json['distance'] != null) ? (json['distance'] as num).toDouble() : 1.2,
+      distance: parsedDistance,
       address: json['address']?.toString() ?? '',
       isOpen: json['is_open'] == true || json['isOpen'] == true || json['status'] == 'OPEN',
-      openingTime: json['opening_time']?.toString() ?? json['openingTime']?.toString() ?? '08:00 AM',
-      closingTime: json['closing_time']?.toString() ?? json['closingTime']?.toString() ?? '10:00 PM',
+      openingTime: json['opening_time']?.toString() ?? json['openingTime']?.toString() ?? '09:00',
+      closingTime: json['closing_time']?.toString() ?? json['closingTime']?.toString() ?? '22:00',
       phoneNumber: json['phone']?.toString() ?? json['phoneNumber']?.toString() ?? json['phone_number']?.toString() ?? '',
       rating: (json['rating'] != null) ? (json['rating'] as num).toDouble() : 4.8,
       latitude: (json['latitude'] != null) ? (json['latitude'] as num).toDouble() : null,

@@ -17,7 +17,7 @@ class PharmacyLoginScreen extends StatefulWidget {
 
 class _PharmacyLoginScreenState extends State<PharmacyLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'apollo@gmail.com');
+  final _emailController = TextEditingController(text: 'ramesh@gmail.com');
   final _passwordController = TextEditingController(text: '123456');
 
   @override

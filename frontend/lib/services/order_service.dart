@@ -2,6 +2,7 @@ import '../config/api_config.dart';
 import '../models/order_model.dart';
 import 'api_service.dart';
 import 'mock_data_service.dart';
+import 'storage_service.dart';
 
 class OrderService {
   static final OrderService _instance = OrderService._internal();
@@ -9,10 +10,11 @@ class OrderService {
   OrderService._internal();
 
   final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
   final MockDataService _mockService = MockDataService();
 
   /// Create new order
-  /// POST /orders
+  /// POST /api/v1/orders
   Future<OrderModel> createOrder({
     required String pharmacyId,
     String? prescriptionId,
@@ -32,17 +34,23 @@ class OrderService {
     final response = await _apiService.post(
       ApiConfig.orders,
       body: payload,
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic>) {
-      return OrderModel.fromJson(response);
+      final order = OrderModel.fromJson(response);
+      // Persist customer order ID locally for order history retrieval
+      if (order.id.isNotEmpty) {
+        await _storageService.saveCustomerOrderId(order.id);
+      }
+      return order;
     }
 
     throw ApiException('Failed to create order');
   }
 
   /// Get order details & tracking status
-  /// GET /orders/:id
+  /// GET /api/v1/orders/:id
   Future<OrderModel> getOrderDetails(String orderId) async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGetOrderById(orderId);
@@ -50,6 +58,7 @@ class OrderService {
 
     final response = await _apiService.get(
       ApiConfig.orderDetails(orderId),
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic>) {
@@ -60,33 +69,37 @@ class OrderService {
   }
 
   /// Get customer's orders
-  /// GET /orders
   Future<List<OrderModel>> getCustomerOrders() async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGetCustomerOrders();
     }
 
-    final response = await _apiService.get(ApiConfig.orders);
+    // Backend provides GET /orders/:id for orders
+    // We retrieve the customer's placed orders using their stored IDs
+    final orderIds = await _storageService.getCustomerOrderIds();
+    final List<OrderModel> results = [];
 
-    if (response is List) {
-      return response.map((item) => OrderModel.fromJson(item as Map<String, dynamic>)).toList();
-    } else if (response is Map<String, dynamic> && response['orders'] is List) {
-      return (response['orders'] as List)
-          .map((item) => OrderModel.fromJson(item as Map<String, dynamic>))
-          .toList();
+    for (final id in orderIds) {
+      try {
+        final order = await getOrderDetails(id);
+        results.add(order);
+      } catch (_) {}
     }
 
-    return [];
+    return results;
   }
 
   /// Get Owner Dashboard statistics
-  /// GET /owner/dashboard
+  /// GET /api/v1/owner/dashboard
   Future<Map<String, dynamic>> getOwnerDashboardStats() async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGetOwnerDashboard();
     }
 
-    final response = await _apiService.get(ApiConfig.ownerDashboard);
+    final response = await _apiService.get(
+      ApiConfig.ownerDashboard,
+      requiresAuth: true,
+    );
 
     if (response is Map<String, dynamic>) {
       return response;
@@ -101,13 +114,16 @@ class OrderService {
   }
 
   /// Get Owner Orders list
-  /// GET /owner/orders
+  /// GET /api/v1/owner/orders
   Future<List<OrderModel>> getOwnerOrders() async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGetOwnerOrders();
     }
 
-    final response = await _apiService.get(ApiConfig.ownerOrders);
+    final response = await _apiService.get(
+      ApiConfig.ownerOrders,
+      requiresAuth: true,
+    );
 
     if (response is List) {
       return response.map((item) => OrderModel.fromJson(item as Map<String, dynamic>)).toList();
@@ -121,7 +137,7 @@ class OrderService {
   }
 
   /// Update order status
-  /// PATCH /orders/:id/status
+  /// PATCH /api/v1/orders/:id/status
   Future<void> updateOrderStatus({
     required String orderId,
     required String status,
@@ -136,11 +152,34 @@ class OrderService {
       body: {
         'status': status,
       },
+      requiresAuth: true,
     );
   }
 
+  /// Update Pharmacy Availability (Open / Closed)
+  /// PATCH /api/v1/owner/pharmacy/availability
+  Future<bool> updatePharmacyAvailability(bool isOpen) async {
+    if (ApiConfig.isDemoMode) {
+      return isOpen;
+    }
+
+    final response = await _apiService.patch(
+      ApiConfig.ownerAvailability,
+      body: {
+        'is_open': isOpen,
+      },
+      requiresAuth: true,
+    );
+
+    if (response is Map<String, dynamic>) {
+      return response['is_open'] == true;
+    }
+
+    return isOpen;
+  }
+
   /// Generate Parcel QR Code
-  /// POST /orders/:id/qr
+  /// POST /api/v1/orders/:id/qr
   Future<Map<String, dynamic>> generateOrderQr(String orderId) async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGenerateQr(orderId);
@@ -148,6 +187,7 @@ class OrderService {
 
     final response = await _apiService.post(
       ApiConfig.orderQr(orderId),
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic>) {

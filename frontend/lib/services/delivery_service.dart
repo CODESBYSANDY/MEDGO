@@ -11,7 +11,7 @@ class DeliveryService {
   final MockDataService _mockService = MockDataService();
 
   /// Verify delivery QR token
-  /// POST /delivery/verify
+  /// POST /api/v1/delivery/verify
   Future<Map<String, dynamic>> verifyDeliveryQr(String qrToken) async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockVerifyDelivery(qrToken);
@@ -23,6 +23,9 @@ class DeliveryService {
         'qr_token': qrToken.trim(),
       },
       requiresAuth: false,
+      extraHeaders: {
+        'x-delivery-key': ApiConfig.deliveryApiKey,
+      },
     );
 
     if (response is Map<String, dynamic>) {
@@ -33,7 +36,7 @@ class DeliveryService {
   }
 
   /// Update delivery status (e.g. PICKED_UP or DELIVERED)
-  /// PATCH /delivery/:orderId/status
+  /// PATCH /api/v1/delivery/:orderId/status
   Future<void> updateDeliveryStatus({
     required String orderId,
     required String status,
@@ -49,6 +52,9 @@ class DeliveryService {
         'status': status,
       },
       requiresAuth: false,
+      extraHeaders: {
+        'x-delivery-key': ApiConfig.deliveryApiKey,
+      },
     );
   }
 }

@@ -1,20 +1,23 @@
 class ApiConfig {
-  /// Base URL of the MEDGO Node.js backend.
-  /// Change this string to point directly to your backend server IP/domain.
-  /// Example: http://192.168.1.100:5000/api/v1 or http://10.0.2.2:5000/api/v1 (Android emulator)
-  static String baseUrl = 'http://YOUR_SERVER_IP:5000/api/v1';
+  /// Production Base URL of the deployed MEDGO Node.js backend.
+  static String baseUrl = 'https://medgo-8pig.onrender.com/api/v1';
 
-  /// Toggle for the clearly separated Mock/Demo mode.
-  /// When false: strictly connects to the live Node.js REST API with zero fallback.
-  /// When true: uses the separated MockDataService for prototyping without a running backend.
+  /// Toggle for separated Mock/Demo mode.
+  /// Default: false (strictly connects to live production Node.js backend).
   static bool isDemoMode = false;
 
-  // Request timeout duration
-  static const Duration timeoutDuration = Duration(seconds: 15);
+  /// Timeouts configured as per specifications
+  static const Duration connectionTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 45);
 
-  // Exact API Endpoints as per specification
+  /// Demo delivery key accepted by backend delivery partner middleware
+  static const String deliveryApiKey = 'medgo-delivery-demo-key-2026';
+
+  // Exact API Endpoints implemented by backend
+  static const String health = '/health';
   static const String login = '/auth/login';
   static const String register = '/auth/register';
+  static const String me = '/auth/me';
 
   static const String pharmacies = '/pharmacies';
   static String pharmacyDetails(String id) => '/pharmacies/$id';
@@ -22,8 +25,9 @@ class ApiConfig {
   static const String medicines = '/medicines';
 
   static const String prescriptions = '/prescriptions';
-  static String patientPrescriptions(String patientId) => '/patients/$patientId/prescriptions';
+  static String prescriptionDetails(String id) => '/prescriptions/$id';
   static String updatePrescriptionStatus(String id) => '/prescriptions/$id/status';
+  static String patientPrescriptions(String patientId) => '/patients/$patientId/prescriptions';
 
   static const String orders = '/orders';
   static String orderDetails(String id) => '/orders/$id';
@@ -32,6 +36,7 @@ class ApiConfig {
 
   static const String ownerDashboard = '/owner/dashboard';
   static const String ownerOrders = '/owner/orders';
+  static const String ownerAvailability = '/owner/pharmacy/availability';
 
   static const String deliveryVerify = '/delivery/verify';
   static String deliveryStatus(String orderId) => '/delivery/$orderId/status';

@@ -86,8 +86,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
-    final pharmacyName = user?.pharmacyName ?? 'Apollo Pharmacy & Wellness';
-    final ownerName = user?.name ?? 'Dr. Rajesh Sundaram';
+    final pharmacyName = user?.pharmacyName ?? 'Sri Medicals';
+    final ownerName = user?.name ?? 'Ramesh';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -181,16 +181,30 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                           Switch(
                             value: _isOpen,
                             activeColor: AppColors.secondary,
-                            onChanged: (val) {
+                            onChanged: (val) async {
                               setState(() {
                                 _isOpen = val;
                               });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(_isOpen ? 'Pharmacy marked OPEN' : 'Pharmacy marked CLOSED'),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
+                              try {
+                                await _orderService.updatePharmacyAvailability(val);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(_isOpen ? 'Pharmacy marked OPEN' : 'Pharmacy marked CLOSED'),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to update status: $e'),
+                                      backgroundColor: AppColors.error,
+                                    ),
+                                  );
+                                }
+                              }
                             },
                           ),
                           Text(

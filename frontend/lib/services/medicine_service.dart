@@ -32,7 +32,8 @@ class MedicineService {
 
     final response = await _apiService.get(
       ApiConfig.medicines,
-      queryParameters: queryParams,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      requiresAuth: false,
     );
 
     if (response is List) {

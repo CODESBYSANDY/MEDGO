@@ -12,23 +12,25 @@ class PharmacyService {
   final MockDataService _mockService = MockDataService();
 
   Future<List<PharmacyModel>> getNearbyPharmacies({
-    double lat = 9.9252,
-    double lng = 78.1198,
-    double radiusKm = 5.0,
+    double? lat,
+    double? lng,
+    double radiusKm = 10.0,
   }) async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGetPharmacies();
     }
 
-    final queryParams = {
-      'lat': lat,
-      'lng': lng,
-      'radius_km': radiusKm,
-    };
+    final queryParams = <String, dynamic>{};
+    if (lat != null && lng != null) {
+      queryParams['lat'] = lat;
+      queryParams['lng'] = lng;
+      queryParams['radius_km'] = radiusKm;
+    }
 
     final response = await _apiService.get(
       ApiConfig.pharmacies,
-      queryParameters: queryParams,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      requiresAuth: false,
     );
 
     if (response is List) {
@@ -49,6 +51,7 @@ class PharmacyService {
 
     final response = await _apiService.get(
       ApiConfig.pharmacyDetails(pharmacyId),
+      requiresAuth: false,
     );
 
     if (response is Map<String, dynamic>) {

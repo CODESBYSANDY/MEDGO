@@ -445,6 +445,14 @@ class MockDataService {
     return _prescriptions.where((p) => p.patientId.toUpperCase() == patientId.toUpperCase()).toList();
   }
 
+  Future<PrescriptionModel> mockGetPrescriptionById(String id) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return _prescriptions.firstWhere(
+      (p) => p.id == id,
+      orElse: () => _prescriptions.first,
+    );
+  }
+
   // --- Orders ---
   Future<OrderModel> mockCreateOrder(Map<String, dynamic> data) async {
     await Future.delayed(const Duration(milliseconds: 600));

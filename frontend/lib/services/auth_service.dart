@@ -40,10 +40,21 @@ class AuthService {
 
     final token = data['token']?.toString() ?? '';
     final userJson = data['user'] as Map<String, dynamic>? ?? {};
-    final user = UserModel.fromJson(userJson);
+    UserModel user = UserModel.fromJson(userJson);
 
     if (token.isNotEmpty) {
       await _storageService.saveAuthData(token: token, user: user);
+
+      // Fetch fresh profile from GET /auth/me to populate phone and other fields
+      if (!ApiConfig.isDemoMode) {
+        try {
+          final profileData = await _apiService.get(ApiConfig.me, requiresAuth: true);
+          if (profileData is Map<String, dynamic> && profileData['user'] != null) {
+            user = UserModel.fromJson(profileData['user'] as Map<String, dynamic>);
+            await _storageService.saveAuthData(token: token, user: user);
+          }
+        } catch (_) {}
+      }
     }
 
     return user;
@@ -63,33 +74,26 @@ class AuthService {
       'role': 'CUSTOMER',
     };
 
-    Map<String, dynamic> data;
-
     if (ApiConfig.isDemoMode) {
-      data = await _mockService.mockRegister(payload);
+      final data = await _mockService.mockRegister(payload);
+      final token = data['token']?.toString() ?? '';
+      final userJson = data['user'] as Map<String, dynamic>? ?? {};
+      final user = UserModel.fromJson(userJson);
+      if (token.isNotEmpty) {
+        await _storageService.saveAuthData(token: token, user: user);
+      }
+      return user;
     } else {
-      final response = await _apiService.post(
+      // 1. Register user on live backend
+      await _apiService.post(
         ApiConfig.register,
         body: payload,
         requiresAuth: false,
       );
 
-      if (response is Map<String, dynamic>) {
-        data = response;
-      } else {
-        throw ApiException('Invalid server response format for registration');
-      }
+      // 2. Automatically log in to obtain JWT token
+      return await login(email: email, password: password);
     }
-
-    final token = data['token']?.toString() ?? '';
-    final userJson = data['user'] as Map<String, dynamic>? ?? {};
-    final user = UserModel.fromJson(userJson);
-
-    if (token.isNotEmpty) {
-      await _storageService.saveAuthData(token: token, user: user);
-    }
-
-    return user;
   }
 
   Future<UserModel> registerPharmacyOwner({
@@ -102,41 +106,36 @@ class AuthService {
   }) async {
     final payload = {
       'name': ownerName.trim(),
-      'pharmacy_name': pharmacyName.trim(),
       'email': email.trim(),
       'phone': phone.trim(),
-      'address': address.trim(),
       'password': password,
       'role': 'PHARMACY_OWNER',
     };
 
-    Map<String, dynamic> data;
-
     if (ApiConfig.isDemoMode) {
-      data = await _mockService.mockRegister(payload);
+      final data = await _mockService.mockRegister({
+        ...payload,
+        'pharmacy_name': pharmacyName,
+        'address': address,
+      });
+      final token = data['token']?.toString() ?? '';
+      final userJson = data['user'] as Map<String, dynamic>? ?? {};
+      final user = UserModel.fromJson(userJson);
+      if (token.isNotEmpty) {
+        await _storageService.saveAuthData(token: token, user: user);
+      }
+      return user;
     } else {
-      final response = await _apiService.post(
+      // 1. Register owner on live backend
+      await _apiService.post(
         ApiConfig.register,
         body: payload,
         requiresAuth: false,
       );
 
-      if (response is Map<String, dynamic>) {
-        data = response;
-      } else {
-        throw ApiException('Invalid server response format for pharmacy owner registration');
-      }
+      // 2. Automatically log in to obtain JWT token
+      return await login(email: email, password: password);
     }
-
-    final token = data['token']?.toString() ?? '';
-    final userJson = data['user'] as Map<String, dynamic>? ?? {};
-    final user = UserModel.fromJson(userJson);
-
-    if (token.isNotEmpty) {
-      await _storageService.saveAuthData(token: token, user: user);
-    }
-
-    return user;
   }
 
   Future<void> logout() async {
@@ -144,6 +143,27 @@ class AuthService {
   }
 
   Future<UserModel?> getCurrentUser() async {
+    if (ApiConfig.isDemoMode) {
+      return await _storageService.getUser();
+    }
+
+    final token = await _storageService.getToken();
+    if (token == null || token.isEmpty) return null;
+
+    try {
+      final profileData = await _apiService.get(ApiConfig.me, requiresAuth: true);
+      if (profileData is Map<String, dynamic> && profileData['user'] != null) {
+        final user = UserModel.fromJson(profileData['user'] as Map<String, dynamic>);
+        await _storageService.saveAuthData(token: token, user: user);
+        return user;
+      }
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        await logout();
+        return null;
+      }
+    } catch (_) {}
+
     return await _storageService.getUser();
   }
 

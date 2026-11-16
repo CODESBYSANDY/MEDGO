@@ -52,17 +52,17 @@ class OwnerProfileScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user?.name ?? 'Dr. Rajesh Sundaram',
+                            user?.name ?? 'Ramesh',
                             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user?.pharmacyName ?? 'Apollo Pharmacy & Wellness',
+                            user?.pharmacyName ?? 'Sri Medicals',
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.secondary),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user?.email ?? 'apollo@gmail.com',
+                            user?.email ?? 'ramesh@gmail.com',
                             style: const TextStyle(fontSize: 12, color: AppColors.textLight),
                           ),
                         ],

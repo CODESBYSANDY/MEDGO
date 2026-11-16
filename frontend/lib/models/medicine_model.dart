@@ -7,7 +7,7 @@ class MedicineModel {
   final bool isPrescriptionRequired;
   final String pharmacyId;
   final String pharmacyName;
-  final String? dosageForm; // e.g. "Tablet", "Syrup", "Capsule"
+  final String? dosageForm;
   final String? manufacturer;
 
   MedicineModel({
@@ -32,12 +32,13 @@ class MedicineModel {
       description: json['description']?.toString(),
       price: (json['price'] != null) ? (json['price'] as num).toDouble() : 0.0,
       stock: (json['stock'] != null) ? (json['stock'] as num).toInt() : 0,
-      isPrescriptionRequired: json['prescription_required'] == true ||
+      isPrescriptionRequired: json['requires_prescription'] == true ||
+          json['prescription_required'] == true ||
           json['is_prescription_required'] == true ||
           json['requiresPrescription'] == true,
       pharmacyId: json['pharmacy_id']?.toString() ?? json['pharmacyId']?.toString() ?? '',
       pharmacyName: json['pharmacy_name']?.toString() ?? json['pharmacyName']?.toString() ?? 'Pharmacy',
-      dosageForm: json['dosage_form']?.toString() ?? json['dosageForm']?.toString() ?? 'Tablet',
+      dosageForm: json['dosage_form']?.toString() ?? json['dosageForm']?.toString() ?? 'Oral Tablet',
       manufacturer: json['manufacturer']?.toString() ?? 'Pharma Care',
     );
   }
@@ -49,7 +50,7 @@ class MedicineModel {
       'description': description,
       'price': price,
       'stock': stock,
-      'prescription_required': isPrescriptionRequired,
+      'requires_prescription': isPrescriptionRequired,
       'pharmacy_id': pharmacyId,
       'pharmacy_name': pharmacyName,
       'dosage_form': dosageForm,

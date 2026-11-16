@@ -21,7 +21,7 @@ class PatientPrescriptionsScreen extends StatefulWidget {
 
 class _PatientPrescriptionsScreenState extends State<PatientPrescriptionsScreen> {
   final PrescriptionService _prescriptionService = PrescriptionService();
-  final _patientIdController = TextEditingController(text: 'PAT-8801');
+  final _patientIdController = TextEditingController(text: 'PAT1001');
 
   List<PrescriptionModel> _prescriptions = [];
   bool _isLoading = false;

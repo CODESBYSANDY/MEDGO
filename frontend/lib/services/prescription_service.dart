@@ -13,6 +13,7 @@ class PrescriptionService {
 
   /// Upload prescription using multipart/form-data.
   /// Fields: patient_id, image (File)
+  /// POST /api/v1/prescriptions
   Future<Map<String, dynamic>> uploadPrescription({
     required String patientId,
     required String imageFilePath,
@@ -28,6 +29,7 @@ class PrescriptionService {
       },
       fileFieldName: 'image',
       filePath: imageFilePath,
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic>) {
@@ -38,14 +40,15 @@ class PrescriptionService {
   }
 
   /// Retrieve prescriptions by patient ID
-  /// GET /patients/:patientId/prescriptions
+  /// GET /api/v1/patients/:patientId/prescriptions
   Future<List<PrescriptionModel>> getPatientPrescriptions(String patientId) async {
     if (ApiConfig.isDemoMode) {
       return await _mockService.mockGetPatientPrescriptions(patientId);
     }
 
     final response = await _apiService.get(
-      ApiConfig.patientPrescriptions(patientId),
+      ApiConfig.patientPrescriptions(patientId.trim()),
+      requiresAuth: true,
     );
 
     if (response is List) {
@@ -59,8 +62,27 @@ class PrescriptionService {
     return [];
   }
 
-  /// Update prescription status (e.g. "VERIFIED")
-  /// PATCH /prescriptions/:id/status
+  /// Get individual prescription details
+  /// GET /api/v1/prescriptions/:id
+  Future<PrescriptionModel> getPrescriptionDetails(String prescriptionId) async {
+    if (ApiConfig.isDemoMode) {
+      return await _mockService.mockGetPrescriptionById(prescriptionId);
+    }
+
+    final response = await _apiService.get(
+      ApiConfig.prescriptionDetails(prescriptionId),
+      requiresAuth: true,
+    );
+
+    if (response is Map<String, dynamic>) {
+      return PrescriptionModel.fromJson(response);
+    }
+
+    throw ApiException('Failed to load prescription details');
+  }
+
+  /// Update prescription status (e.g. "VERIFIED", "REJECTED")
+  /// PATCH /api/v1/prescriptions/:id/status
   Future<void> updatePrescriptionStatus({
     required String prescriptionId,
     required String status,
@@ -75,6 +97,7 @@ class PrescriptionService {
       body: {
         'status': status,
       },
+      requiresAuth: true,
     );
   }
 }

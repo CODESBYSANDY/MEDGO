@@ -74,6 +74,12 @@ class _ApiConfigDialogState extends State<ApiConfigDialog> {
               runSpacing: 4,
               children: [
                 ActionChip(
+                  label: const Text('Live Production (Render)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    _urlController.text = 'https://medgo-8pig.onrender.com/api/v1';
+                  },
+                ),
+                ActionChip(
                   label: const Text('10.0.2.2 (Emulator)', style: TextStyle(fontSize: 11)),
                   onPressed: () {
                     _urlController.text = 'http://10.0.2.2:5000/api/v1';

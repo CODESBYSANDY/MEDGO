@@ -22,7 +22,11 @@ class ApiService {
 
   final StorageService _storageService = StorageService();
 
-  Future<Map<String, String>> _buildHeaders({bool requiresAuth = true, bool isJson = true}) async {
+  Future<Map<String, String>> _buildHeaders({
+    bool requiresAuth = true,
+    bool isJson = true,
+    Map<String, String>? extraHeaders,
+  }) async {
     final headers = <String, String>{
       'Accept': 'application/json',
     };
@@ -36,6 +40,10 @@ class ApiService {
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
+    }
+
+    if (extraHeaders != null) {
+      headers.addAll(extraHeaders);
     }
 
     return headers;
@@ -62,10 +70,22 @@ class ApiService {
     try {
       decoded = jsonDecode(response.body);
     } catch (_) {
+      if (response.statusCode == 401) {
+        _storageService.clearAll();
+        throw ApiException('Session expired or unauthorized. Please login again.', 401);
+      }
       throw ApiException(
         'Invalid response format from server (${response.statusCode})',
         response.statusCode,
       );
+    }
+
+    if (response.statusCode == 401) {
+      _storageService.clearAll();
+      final msg = decoded is Map<String, dynamic> && decoded['message'] != null
+          ? decoded['message'].toString()
+          : 'Unauthorized. Please login again.';
+      throw ApiException(msg, 401);
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -96,18 +116,19 @@ class ApiService {
     String endpoint, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
+    Map<String, String>? extraHeaders,
   }) async {
     final uri = _buildUri(endpoint, queryParameters);
     try {
-      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final headers = await _buildHeaders(requiresAuth: requiresAuth, extraHeaders: extraHeaders);
       final response = await http
           .get(uri, headers: headers)
-          .timeout(ApiConfig.timeoutDuration);
+          .timeout(ApiConfig.receiveTimeout);
 
       return _processResponse(response);
     } on SocketException {
       throw ApiException(
-        'Unable to connect to MEDGO backend at ${uri.host}:${uri.port}. Please verify the server is running.',
+        'Unable to connect to MEDGO backend at ${uri.host}. Please check your internet connection.',
       );
     } on TimeoutException {
       throw ApiException(
@@ -124,22 +145,56 @@ class ApiService {
     String endpoint, {
     dynamic body,
     bool requiresAuth = true,
+    Map<String, String>? extraHeaders,
   }) async {
     final uri = _buildUri(endpoint);
     try {
-      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final headers = await _buildHeaders(requiresAuth: requiresAuth, extraHeaders: extraHeaders);
       final response = await http
           .post(
             uri,
             headers: headers,
             body: body != null ? jsonEncode(body) : null,
           )
-          .timeout(ApiConfig.timeoutDuration);
+          .timeout(ApiConfig.receiveTimeout);
 
       return _processResponse(response);
     } on SocketException {
       throw ApiException(
-        'Unable to connect to MEDGO backend at ${uri.host}:${uri.port}. Please verify the server is running.',
+        'Unable to connect to MEDGO backend at ${uri.host}. Please check your internet connection.',
+      );
+    } on TimeoutException {
+      throw ApiException(
+        'Connection timed out. The server took too long to respond.',
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<dynamic> put(
+    String endpoint, {
+    dynamic body,
+    bool requiresAuth = true,
+    Map<String, String>? extraHeaders,
+  }) async {
+    final uri = _buildUri(endpoint);
+    try {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth, extraHeaders: extraHeaders);
+      final response = await http
+          .put(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(ApiConfig.receiveTimeout);
+
+      return _processResponse(response);
+    } on SocketException {
+      throw ApiException(
+        'Unable to connect to MEDGO backend at ${uri.host}. Please check your internet connection.',
       );
     } on TimeoutException {
       throw ApiException(
@@ -156,22 +211,56 @@ class ApiService {
     String endpoint, {
     dynamic body,
     bool requiresAuth = true,
+    Map<String, String>? extraHeaders,
   }) async {
     final uri = _buildUri(endpoint);
     try {
-      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final headers = await _buildHeaders(requiresAuth: requiresAuth, extraHeaders: extraHeaders);
       final response = await http
           .patch(
             uri,
             headers: headers,
             body: body != null ? jsonEncode(body) : null,
           )
-          .timeout(ApiConfig.timeoutDuration);
+          .timeout(ApiConfig.receiveTimeout);
 
       return _processResponse(response);
     } on SocketException {
       throw ApiException(
-        'Unable to connect to MEDGO backend at ${uri.host}:${uri.port}. Please verify the server is running.',
+        'Unable to connect to MEDGO backend at ${uri.host}. Please check your internet connection.',
+      );
+    } on TimeoutException {
+      throw ApiException(
+        'Connection timed out. The server took too long to respond.',
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<dynamic> delete(
+    String endpoint, {
+    dynamic body,
+    bool requiresAuth = true,
+    Map<String, String>? extraHeaders,
+  }) async {
+    final uri = _buildUri(endpoint);
+    try {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth, extraHeaders: extraHeaders);
+      final response = await http
+          .delete(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(ApiConfig.receiveTimeout);
+
+      return _processResponse(response);
+    } on SocketException {
+      throw ApiException(
+        'Unable to connect to MEDGO backend at ${uri.host}. Please check your internet connection.',
       );
     } on TimeoutException {
       throw ApiException(
@@ -197,7 +286,6 @@ class ApiService {
 
       final headers = await _buildHeaders(requiresAuth: requiresAuth, isJson: false);
       request.headers.addAll(headers);
-
       request.fields.addAll(fields);
 
       if (filePath.isNotEmpty) {
@@ -205,13 +293,13 @@ class ApiService {
         request.files.add(multipartFile);
       }
 
-      final streamedResponse = await request.send().timeout(ApiConfig.timeoutDuration);
+      final streamedResponse = await request.send().timeout(ApiConfig.receiveTimeout);
       final response = await http.Response.fromStream(streamedResponse);
 
       return _processResponse(response);
     } on SocketException {
       throw ApiException(
-        'Unable to connect to MEDGO backend at ${uri.host}:${uri.port}. Please verify the server is running.',
+        'Unable to connect to MEDGO backend at ${uri.host}. Please check your internet connection.',
       );
     } on TimeoutException {
       throw ApiException(
